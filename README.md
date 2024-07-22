@@ -5,4 +5,4 @@ I was tasked to replace the broken temperature sensor device for my managers wal
 This python script uses the glob library to take the temperature with a connected sensor to the Raspberry Pi. The Request 
 library and www.textbelt.com API were used to send a text to my boss when the cooler reaches a certain temperature.
 
-I have the Raspberry Pi set up to run the script as a startup service so it runs automatically.
+I have the Raspberry Pi set up to run the script automatically as a startup service.
