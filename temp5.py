@@ -16,7 +16,7 @@ import time
 import requests
 import random
 key = '4fe42da8f34496088125c8dc4d60e7a531634374Yc0jCA3nbsDHbQRPafdlL9Glc'
-phone = 3128909930
+phone = #######
 tempset= 41
 
 # Load Modules
