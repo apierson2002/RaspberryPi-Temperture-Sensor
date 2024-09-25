@@ -1,5 +1,5 @@
 # HEADER#########################################################################
-# ANDREW PIERSON's TENNIS BALL SPEED REGRESSION MODEL
+# ANDREW PIERSON's TEMPERATURE SENSOR PROGRAM
 # FILENAME: temp5.py    #do not change (for startup service)
 # DATE: 7/20/2024
 # DESCRIPTION: This python script uses glob api to measure the
@@ -15,26 +15,27 @@ import glob
 import time
 import requests
 import random
-key = '###'
-phone = #######
-tempset= 41
+
+key = '4fe42da8f34496088125c8dc4d60e7a531634374Yc0jCA3nbsDHbQRPafdlL9Glc'
+phone = 3128909930
+tempset = 41
 
 # Load Modules
 os.system('modprobe w1-gpio')
 os.system('modprobe w1-therm')
 
-# Sensor in the filesystem- source chat gpt
+# Sensor in the filesystem
 base_dir = '/sys/bus/w1/devices/'
 device_folder = glob.glob(base_dir + '28*')[0] 
 device_file = device_folder + '/w1_slave'
 
-# read temp from device - source chat gpt
+# Read temperature from device
 def read_temp_raw():
     with open(device_file, 'r') as f:
         lines = f.readlines()
     return lines
 
-# Read temp and return F* and C* - source chat gpt
+# Read temperature and return in Celsius and Fahrenheit
 def read_temp():
     lines = read_temp_raw()
     while lines[0].strip()[-3:] != 'YES':
@@ -45,10 +46,10 @@ def read_temp():
         temp_string = lines[1][equals_pos+2:]
         temp_c = float(temp_string) / 1000.0
         temp_f = temp_c * 9.0 / 5.0 + 32.0
-        temp_f = round(temp_f,2)
+        temp_f = round(temp_f, 2)
         return temp_c, temp_f
 
-# send text - source chat gpt
+# Send text message
 def send_text(phone, key, message):
     resp = requests.post('https://textbelt.com/text', {
         'phone': phone,
@@ -57,34 +58,38 @@ def send_text(phone, key, message):
     })
     data = resp.json()
     return data
-    
-#control loop
-quota =0
+
+# Function to construct text messages
+def text_builder(message_type, temp_f=None, quota=None, tempset=None):
+    if message_type == 'high_temp':
+        return f'Coach Bj, the walk-in is above {tempset}°F.\nTemp is: {temp_f}°F'
+    elif message_type == 'still_high_temp':
+        return f'It has been 20 minutes and the temperature is still {temp_f}°F!\n\nSomething could be wrong!!!'
+    elif message_type == 'temp_normal':
+        return f'The walk-in cooler is back to normal :) Temp: {temp_f}°F\nText quota remaining: {quota}'
+    else:
+        return 'Unknown message type'
+
+# Control loop
+quota = 0
 while True:
     temp_c, temp_f = read_temp()
     print(f'Temperature: {temp_c}°C, {temp_f}°F')
-    time.sleep(2) #sleep for 2 sec
-    if (temp_f>=tempset):
-        tempstr = str(temp_f)
-        text = 'Coach Bj, the walk-in is above 41*F.' + '\nTemp is: '+tempstr +'*F'
+    time.sleep(2)  # Sleep for 2 seconds
+    if temp_f >= tempset:
+        text = text_builder('high_temp', temp_f=temp_f, tempset=tempset)
         data = send_text(phone, key, text)
-        quota = data['quotaRemaining']
-        count =0
-        while (temp_f>=tempset):
-            time.sleep(300) #5 min sleep
-            count = count +1
+        quota = data.get('quotaRemaining', quota)
+        count = 0
+        while temp_f >= tempset:
+            time.sleep(300)  # Sleep for 5 minutes
+            count += 1
             temp_c, temp_f = read_temp()
             print(f'Temperature: {temp_c}°C, {temp_f}°F')
-            if (count==4):
-                tempstr3 = str(temp_f)
-                text3='It has been 20min and it is: ' + tempstr3 +'*F!' + '\n\nSomething could be wrong!!!'
-                data = send_text(phone, key, text3)
-        if (temp_f<=tempset):
-            tempstr2 = str(temp_f)
-            quotastr = str(quota)
-            text2='The walk in is all Better now:) Temp: ' + tempstr2+'*F' +'\ntext-quota: '+quotastr
-            data = send_text(phone, key, text2)
-        time.sleep(120) #sleeps for 2 min
-
-
-
+            if count == 4:
+                text = text_builder('still_high_temp', temp_f=temp_f)
+                data = send_text(phone, key, text)
+        # Temperature is back to normal
+        text = text_builder('temp_normal', temp_f=temp_f, quota=quota)
+        data = send_text(phone, key, text)
+        time.sleep(120)  # Sleep for 2 minutes
